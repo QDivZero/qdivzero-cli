@@ -39,6 +39,7 @@ brews:
     license: "MIT"
     install: |
       bin.install "qdivzero"
-    enabled: '{{ .Env.GORELEASER_BREW_ENABLED }}'
+    # Upload the formula only when the brew token is available (skip_upload is templateable).
+    skip_upload: '{{ if eq .Env.GORELEASER_BREW_ENABLED "true" }}false{{ else }}true{{ end }}'
     test: |
       system "#{bin}/qdivzero", "version"
