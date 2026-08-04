@@ -103,9 +103,20 @@ func runCeremony(ctx context.Context, deps *Deps, begin passkeyBegin) (json.RawM
 	mux.HandleFunc("/result", func(w http.ResponseWriter, r *http.Request) {
 		var payload struct {
 			Credential json.RawMessage `json:"credential"`
+			Error      string          `json:"error"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
 			http.Error(w, "invalid payload", http.StatusBadRequest)
+			return
+		}
+		if payload.Error != "" || len(payload.Credential) == 0 || string(payload.Credential) == "null" {
+			msg := payload.Error
+			if msg == "" {
+				msg = "no credential produced"
+			}
+			credCh <- json.RawMessage(`{"__error":` + jsonQuote(msg) + `}`)
+			w.WriteHeader(http.StatusBadRequest)
+			_, _ = io.WriteString(w, "Failed — check the terminal.")
 			return
 		}
 		credCh <- payload.Credential
@@ -122,12 +133,24 @@ func runCeremony(ctx context.Context, deps *Deps, begin passkeyBegin) (json.RawM
 
 	select {
 	case cred := <-credCh:
+		var errPayload struct {
+			Error string `json:"__error"`
+		}
+		if err := json.Unmarshal(cred, &errPayload); err == nil && errPayload.Error != "" {
+			return nil, fmt.Errorf("passkey: ceremony failed in the browser: %s", errPayload.Error)
+		}
 		return cred, nil
 	case <-ctx.Done():
 		return nil, ctx.Err()
 	case <-time.After(2 * time.Minute):
 		return nil, fmt.Errorf("passkey: ceremony timed out after 2 minutes")
 	}
+}
+
+// jsonQuote quotes a string for embedding in JSON.
+func jsonQuote(s string) string {
+	b, _ := json.Marshal(s)
+	return string(b)
 }
 
 // openBrowserFn is indirections so tests can stub the browser launch.
@@ -164,6 +187,32 @@ function b64urlToBytes(s) {
   for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
   return u;
 }
+function bytesToB64url(buf) {
+  const bytes = new Uint8Array(buf);
+  let bin = "";
+  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+  return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+// Serialize the assertion manually (credential.toJSON() is unavailable in
+// some browsers).
+function serializeCredential(credential) {
+  const assertion = credential.response;
+  const out = {
+    id: credential.id,
+    rawId: bytesToB64url(credential.rawId),
+    type: credential.type,
+    response: {
+      authenticatorData: bytesToB64url(assertion.authenticatorData),
+      clientDataJSON: bytesToB64url(assertion.clientDataJSON),
+      signature: bytesToB64url(assertion.signature),
+    },
+    clientExtensionResults: credential.getClientExtensionResults ? credential.getClientExtensionResults() : {},
+  };
+  if (assertion.userHandle && assertion.userHandle.byteLength > 0) {
+    out.response.userHandle = bytesToB64url(assertion.userHandle);
+  }
+  return out;
+}
 const options = {
   ...payload,
   challenge: b64urlToBytes(payload.challenge),
@@ -176,7 +225,7 @@ const options = {
     const res = await fetch("/result", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ credential: credential.toJSON() }),
+      body: JSON.stringify({ credential: serializeCredential(credential) }),
     });
     document.body.innerHTML = "<p>" + (res.ok ? "Success — close this tab." : "Failed — check the terminal.") + "</p>";
   } catch (e) {

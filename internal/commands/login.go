@@ -3,9 +3,11 @@ package commands
 import (
 	"bufio"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/spf13/cobra"
+	"golang.org/x/term"
 
 	"github.com/QDivZero/qdivzero-cli/internal/config"
 	"github.com/QDivZero/qdivzero-go"
@@ -62,8 +64,7 @@ func newLoginCmd(deps *Deps) *cobra.Command {
 			}
 			if password == "" {
 				fmt.Fprint(deps.Stdout, "Password: ")
-				line, _ := reader.ReadString('\n')
-				password = strings.TrimSpace(line)
+				password = readSecret(reader)
 			}
 			if password == "" {
 				return fmt.Errorf("login: email and password are required")
@@ -94,7 +95,7 @@ func newLoginCmd(deps *Deps) *cobra.Command {
 					}
 				}
 				if resp.JSON200 == nil || resp.JSON200.AccessToken == nil || *resp.JSON200.AccessToken == "" {
-					return fmt.Errorf("login: failed — check your credentials and 2FA code (status %d)", resp.StatusCode())
+					return fmt.Errorf("login: failed — %s (status %d)", loginErrorBody(resp.Body), resp.StatusCode())
 				}
 			}
 
@@ -140,4 +141,27 @@ func storeLoginTokens(deps *Deps, email, password, access, refresh string) error
 	}
 	fmt.Fprintln(deps.Stdout, "logged in: tokens stored in ~/.qdivzero/credentials")
 	return nil
+}
+
+// readSecret reads a line from the reader; when stdin is a terminal the echo
+// is disabled so the secret is not displayed.
+func readSecret(reader *bufio.Reader) string {
+	if term.IsTerminal(int(os.Stdin.Fd())) {
+		raw, err := term.ReadPassword(int(os.Stdin.Fd()))
+		fmt.Fprintln(os.Stdout)
+		if err != nil {
+			return ""
+		}
+		return strings.TrimSpace(string(raw))
+	}
+	line, _ := reader.ReadString('\n')
+	return strings.TrimSpace(line)
+}
+
+// loginErrorBody extracts the API error message from a login failure body.
+func loginErrorBody(body []byte) string {
+	if r, err := qdivzero.ParseErrorResponse(body); err == nil && r != nil && r.Error != nil {
+		return *r.Error
+	}
+	return "unknown error"
 }
