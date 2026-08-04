@@ -3,6 +3,7 @@ package commands
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -16,9 +17,24 @@ func Execute(version string, services ...func(*Deps) *cobra.Command) error {
 	root := NewRootCmd(version, services...)
 	if err := root.Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, "error:", err)
+		if hint := hintForError(err); hint != "" {
+			fmt.Fprintln(os.Stderr, "hint:", hint)
+		}
 		return err
 	}
 	return nil
+}
+
+// hintForError returns a helpful hint for known error patterns, or "".
+func hintForError(err error) string {
+	msg := err.Error()
+	switch {
+	case strings.Contains(msg, "status 401"):
+		return "the stored token was rejected; get a fresh one and run 'qdivzero configure --token <token>' (add --force to overwrite)"
+	case strings.Contains(msg, "not configured"):
+		return "run 'qdivzero configure' first"
+	}
+	return ""
 }
 
 // NewRootCmd builds the CLI root command and wires the service registry.
