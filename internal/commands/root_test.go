@@ -11,7 +11,7 @@ func TestHintForError(t *testing.T) {
 		err  error
 		want string
 	}{
-		{errors.New("instances list: status 401"), "qdivzero configure --token"},
+		{errors.New("instances list: status 401"), "qdivzero configure --api-key"},
 		{errors.New("qdivzero is not configured; run 'qdivzero configure' first"), "qdivzero configure"},
 		{errors.New("instances list: status 500"), ""},
 		{errors.New("network error"), ""},
