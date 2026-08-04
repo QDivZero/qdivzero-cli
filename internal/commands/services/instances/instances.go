@@ -53,6 +53,8 @@ func strPtr(s string) *string { return &s }
 
 func intPtr(i int) *int { return &i }
 
+func float32Ptr(f float32) *float32 { return &f }
+
 func newListCmd(deps *commands.Deps) *cobra.Command {
 	return &cobra.Command{
 		Use:   "list",
@@ -241,6 +243,17 @@ func newCreateCmd(deps *commands.Deps) *cobra.Command {
 			gpuPrefsRaw, _ := cmd.Flags().GetString("gpu-preferences")
 			idleTimeout, _ := cmd.Flags().GetInt("idle-timeout-seconds")
 			description, _ := cmd.Flags().GetString("description")
+			smartRegion, _ := cmd.Flags().GetString("smart-region")
+			smartRegionsRaw, _ := cmd.Flags().GetString("smart-regions")
+			smartMaxPrice, _ := cmd.Flags().GetFloat64("smart-max-price-per-hour-eur")
+			smartMinGpuClass, _ := cmd.Flags().GetString("smart-min-gpu-class")
+			smartMinTflops, _ := cmd.Flags().GetFloat64("smart-min-total-tflops")
+			smartAllowSpot, _ := cmd.Flags().GetBool("smart-allow-spot")
+			smartAllowCommunity, _ := cmd.Flags().GetBool("smart-allow-community")
+			smartProviderPreference, _ := cmd.Flags().GetString("smart-provider-preference")
+			smartProviderFilterMode, _ := cmd.Flags().GetString("smart-provider-filter-mode")
+			smartSelectionLabel, _ := cmd.Flags().GetString("smart-selection-label")
+			workloadKind, _ := cmd.Flags().GetString("workload-kind")
 
 			body := qdivzero.CreateInstanceRequest{
 				HuggingfaceRepoId: strPtr(repoID),
@@ -270,6 +283,43 @@ func newCreateCmd(deps *commands.Deps) *cobra.Command {
 			if cmd.Flags().Changed("description") {
 				body.Description = strPtr(description)
 			}
+			if cmd.Flags().Changed("smart-region") {
+				body.SmartRegion = strPtr(smartRegion)
+			}
+			if cmd.Flags().Changed("smart-regions") && smartRegionsRaw != "" {
+				var regions []string
+				if err := json.Unmarshal([]byte(smartRegionsRaw), &regions); err != nil {
+					return fmt.Errorf("instances create: --smart-regions: %w", err)
+				}
+				body.SmartRegions = &regions
+			}
+			if cmd.Flags().Changed("smart-max-price-per-hour-eur") {
+				body.SmartMaxPricePerHourEur = float32Ptr(float32(smartMaxPrice))
+			}
+			if cmd.Flags().Changed("smart-min-gpu-class") {
+				body.SmartMinGpuClass = strPtr(smartMinGpuClass)
+			}
+			if cmd.Flags().Changed("smart-min-total-tflops") {
+				body.SmartMinTotalTflops = float32Ptr(float32(smartMinTflops))
+			}
+			if cmd.Flags().Changed("smart-allow-spot") {
+				body.SmartAllowSpot = &smartAllowSpot
+			}
+			if cmd.Flags().Changed("smart-allow-community") {
+				body.SmartAllowCommunity = &smartAllowCommunity
+			}
+			if cmd.Flags().Changed("smart-provider-preference") {
+				body.SmartProviderPreference = strPtr(smartProviderPreference)
+			}
+			if cmd.Flags().Changed("smart-provider-filter-mode") {
+				body.SmartProviderFilterMode = strPtr(smartProviderFilterMode)
+			}
+			if cmd.Flags().Changed("smart-selection-label") {
+				body.SmartSelectionLabel = strPtr(smartSelectionLabel)
+			}
+			if cmd.Flags().Changed("workload-kind") {
+				body.WorkloadKind = strPtr(workloadKind)
+			}
 
 			resp, err := api.PostInstancesWithResponse(ctx, nil, body)
 			if err != nil {
@@ -293,5 +343,16 @@ func newCreateCmd(deps *commands.Deps) *cobra.Command {
 	cmd.Flags().String("gpu-preferences", "", `GPU preferences as JSON, e.g. [{"public_gpu_id":"gpu-id","count":1}]`)
 	cmd.Flags().Int("idle-timeout-seconds", 0, "idle timeout in seconds")
 	cmd.Flags().String("description", "", "description")
+	cmd.Flags().String("smart-region", "", "smart scheduling: preferred region")
+	cmd.Flags().String("smart-regions", "", `smart scheduling: allowed regions as JSON, e.g. ["eu-west-1","us-east-1"]`)
+	cmd.Flags().Float64("smart-max-price-per-hour-eur", 0, "smart scheduling: max price per hour in EUR")
+	cmd.Flags().String("smart-min-gpu-class", "", "smart scheduling: minimum GPU class")
+	cmd.Flags().Float64("smart-min-total-tflops", 0, "smart scheduling: minimum total TFLOPS")
+	cmd.Flags().Bool("smart-allow-spot", false, "smart scheduling: allow spot instances")
+	cmd.Flags().Bool("smart-allow-community", false, "smart scheduling: allow community instances")
+	cmd.Flags().String("smart-provider-preference", "", "smart scheduling: preferred provider")
+	cmd.Flags().String("smart-provider-filter-mode", "", "smart scheduling: provider filter mode")
+	cmd.Flags().String("smart-selection-label", "", "smart scheduling: selection label")
+	cmd.Flags().String("workload-kind", "", "workload kind")
 	return cmd
 }
