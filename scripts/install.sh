@@ -33,14 +33,14 @@ ASSET="qdivzero_${VERSION#v}_${OS}_${ARCH}.tar.gz"
 echo "==> downloading $ASSET"
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
-curl -fsSL "$BASE_URL/$ASSET" -o "$TMP/qdivzero.tar.gz"
+curl -fsSL "$BASE_URL/$ASSET" -o "$TMP/$ASSET"
 curl -fsSL "$BASE_URL/checksums.txt" -o "$TMP/checksums.txt"
 
 echo "==> verifying checksum"
 (cd "$TMP" && grep " $ASSET$" checksums.txt | sha256sum -c -)
 
 echo "==> extracting"
-tar -xzf "$TMP/qdivzero.tar.gz" -C "$TMP"
+tar -xzf "$TMP/$ASSET" -C "$TMP"
 mkdir -p "$INSTALL_DIR"
 install -m 0755 "$TMP/qdivzero" "$INSTALL_DIR/qdivzero"
 
