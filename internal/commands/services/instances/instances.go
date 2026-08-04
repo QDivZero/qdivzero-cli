@@ -254,6 +254,7 @@ func newCreateCmd(deps *commands.Deps) *cobra.Command {
 			smartProviderFilterMode, _ := cmd.Flags().GetString("smart-provider-filter-mode")
 			smartSelectionLabel, _ := cmd.Flags().GetString("smart-selection-label")
 			workloadKind, _ := cmd.Flags().GetString("workload-kind")
+			servingName, _ := cmd.Flags().GetString("serving-name")
 
 			body := qdivzero.CreateInstanceRequest{
 				HuggingfaceRepoId: strPtr(repoID),
@@ -320,6 +321,9 @@ func newCreateCmd(deps *commands.Deps) *cobra.Command {
 			if cmd.Flags().Changed("workload-kind") {
 				body.WorkloadKind = strPtr(workloadKind)
 			}
+			if cmd.Flags().Changed("serving-name") {
+				body.ServingName = strPtr(servingName)
+			}
 
 			resp, err := api.PostInstancesWithResponse(ctx, nil, body)
 			if err != nil {
@@ -354,5 +358,6 @@ func newCreateCmd(deps *commands.Deps) *cobra.Command {
 	cmd.Flags().String("smart-provider-filter-mode", "", "smart scheduling: provider filter mode")
 	cmd.Flags().String("smart-selection-label", "", "smart scheduling: selection label")
 	cmd.Flags().String("workload-kind", "", "workload kind")
+	cmd.Flags().String("serving-name", "", "serving name (used as the model id on the chat gateway)")
 	return cmd
 }
