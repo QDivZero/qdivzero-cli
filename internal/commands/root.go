@@ -47,6 +47,7 @@ func NewRootCmd(version string) *cobra.Command {
 	}
 
 	root.AddCommand(
+		newConfigureCmd(deps),
 		newMeCmd(deps),
 		newVersionCmd(deps),
 	)
