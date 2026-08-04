@@ -13,6 +13,7 @@ import (
 // immutable after construction; service packages never import each other.
 type Deps struct {
 	Version string
+	BaseURL string
 	Client  func(ctx context.Context) (*qdivzero.API, error)
 	Render  *output.Renderer
 	Config  *config.Credentials

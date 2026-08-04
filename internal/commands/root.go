@@ -54,6 +54,7 @@ func NewRootCmd(version string, services ...func(*Deps) *cobra.Command) *cobra.C
 
 	deps := &Deps{
 		Version: version,
+		BaseURL: "https://api.qdiv0.com",
 		Client:  client.Factory(),
 		Render:  output.New(func() bool { return jsonMode }, os.Stdout),
 		Config:  &config.Credentials{},
