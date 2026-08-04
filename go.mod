@@ -3,7 +3,7 @@ module github.com/QDivZero/qdivzero-cli
 go 1.26.5
 
 require (
-	github.com/QDivZero/qdivzero-go v1.0.0
+	github.com/QDivZero/qdivzero-go v1.0.1
 	github.com/spf13/cobra v1.10.2
 )
 

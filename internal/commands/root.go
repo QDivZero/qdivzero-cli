@@ -64,6 +64,7 @@ func NewRootCmd(version string, services ...func(*Deps) *cobra.Command) *cobra.C
 
 	root.AddCommand(
 		newConfigureCmd(deps),
+		newConfigureBetaTokenCmd(deps),
 		newMeCmd(deps),
 		newVersionCmd(deps),
 	)

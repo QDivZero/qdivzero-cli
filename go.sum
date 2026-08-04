@@ -1,5 +1,7 @@
 github.com/QDivZero/qdivzero-go v1.0.0 h1:JOWOy7Gd3Sw26pSpGMJt353YditwY8s+SlbHkPw+plY=
 github.com/QDivZero/qdivzero-go v1.0.0/go.mod h1:m3ysEoX/zDBcEXLg1RXIZbY4FiMBc8tP05CmIjD48JE=
+github.com/QDivZero/qdivzero-go v1.0.1 h1:qk3u9y9PurWYYgVrXR1cwqjq+8dCsZpOjbjCOZEdJAI=
+github.com/QDivZero/qdivzero-go v1.0.1/go.mod h1:m3ysEoX/zDBcEXLg1RXIZbY4FiMBc8tP05CmIjD48JE=
 github.com/RaveNoX/go-jsoncommentstrip v1.0.0/go.mod h1:78ihd09MekBnJnxpICcwzCMzGrKSKYe4AqU6PDYYpjk=
 github.com/apapsch/go-jsonmerge/v2 v2.0.0 h1:axGnT1gRIfimI7gJifB699GoE/oq+F2MU7Dml6nw9rQ=
 github.com/apapsch/go-jsonmerge/v2 v2.0.0/go.mod h1:lvDnEdqiQrp0O42VQGgmlKpxL1AP2+08jFMw88y4klk=

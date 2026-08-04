@@ -12,10 +12,11 @@ import (
 
 // Credentials mirrors the JSON fields of ~/.qdivzero/credentials.
 type Credentials struct {
-	Email        string `json:"email"`
-	Password     string `json:"password"`
-	AccessToken  string `json:"access_token"`
-	RefreshToken string `json:"refresh_token"`
+	Email            string `json:"email"`
+	Password         string `json:"password"`
+	AccessToken      string `json:"access_token"`
+	RefreshToken     string `json:"refresh_token"`
+	PrivateBetaToken string `json:"x_private_beta_token"`
 }
 
 // Path returns the credentials file path.

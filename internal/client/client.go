@@ -20,6 +20,10 @@ func Factory() func(ctx context.Context) (*qdivzero.API, error) {
 		if !config.IsConfigured(cfg) {
 			return nil, fmt.Errorf("qdivzero is not configured; run 'qdivzero configure' first")
 		}
-		return qdivzero.NewAPI()
+		var opts []qdivzero.Option
+		if cfg.PrivateBetaToken != "" {
+			opts = append(opts, qdivzero.WithHeader("X-Private-Beta-Token", cfg.PrivateBetaToken))
+		}
+		return qdivzero.NewAPI(opts...)
 	}
 }
