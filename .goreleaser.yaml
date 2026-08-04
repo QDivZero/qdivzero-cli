@@ -1,0 +1,44 @@
+version: 2
+
+project_name: qdivzero
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - main: ./main.go
+    binary: qdivzero
+    ldflags:
+      - -s -w -X main.version={{.Version}}
+    goos: [linux, darwin, windows]
+    goarch: [amd64, arm64]
+    env:
+      - CGO_ENABLED=0
+
+archives:
+  - formats: [tar.gz]
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+
+checksum:
+  name_template: "checksums.txt"
+
+brews:
+  - name: qdivzero
+    repository:
+      owner: QDivZero
+      name: homebrew-tap
+    commit_author:
+      name: github-actions[bot]
+      email: 41898282+github-actions[bot]@users.noreply.github.com
+    homepage: "https://github.com/QDivZero/qdivzero-cli"
+    description: "Command-line client for the QDivZero API"
+    license: "MIT"
+    install: |
+      bin.install "qdivzero"
+    enabled: '{{ .Env.GORELEASER_BREW_ENABLED }}'
+    test: |
+      system "#{bin}/qdivzero", "version"

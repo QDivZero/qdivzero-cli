@@ -1,0 +1,37 @@
+name: release
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Install goreleaser
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser
+          version: latest
+      - name: Set brew flag
+        id: brew
+        run: |
+          if [ -n "${{ secrets.GORELEASER_TOKEN }}" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Run goreleaser
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GORELEASER_TOKEN: ${{ secrets.GORELEASER_TOKEN }}
+          GORELEASER_BREW_ENABLED: ${{ steps.brew.outputs.enabled }}
+        run: goreleaser release --clean
