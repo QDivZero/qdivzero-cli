@@ -18,6 +18,7 @@ type Credentials struct {
 	RefreshToken     string `json:"refresh_token"`
 	PrivateBetaToken string `json:"x_private_beta_token"`
 	AccountId        string `json:"account_id"`
+	APIKey           string `json:"api_key"`
 }
 
 // Path returns the credentials file path.
@@ -50,10 +51,10 @@ func Read() (Credentials, error) {
 	return c, nil
 }
 
-// IsConfigured reports whether the credentials file carries an access token
-// or email/password credentials.
+// IsConfigured reports whether the credentials file carries an API key, an
+// access token or email/password credentials.
 func IsConfigured(c Credentials) bool {
-	return c.AccessToken != "" || (c.Email != "" && c.Password != "")
+	return c.APIKey != "" || c.AccessToken != "" || (c.Email != "" && c.Password != "")
 }
 
 // Write stores the credentials file (0600, dir 0700). Without force it

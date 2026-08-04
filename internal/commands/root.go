@@ -30,7 +30,7 @@ func hintForError(err error) string {
 	msg := err.Error()
 	switch {
 	case strings.Contains(msg, "status 401"):
-		return "the stored token was rejected; get a fresh one and run 'qdivzero configure --token <token>' (add --force to overwrite)"
+		return "the API rejected the stored credentials; re-run 'qdivzero configure --api-key <key>' (or --token <token>) with a valid one"
 	case strings.Contains(msg, "not configured"):
 		return "run 'qdivzero configure' first"
 	}

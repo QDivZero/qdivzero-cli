@@ -33,7 +33,6 @@ func newLoginCmd(deps *Deps) *cobra.Command {
 		email    string
 		password string
 		totpCode string
-		passkey  bool
 	)
 	cmd := &cobra.Command{
 		Use:   "login",
@@ -54,13 +53,6 @@ func newLoginCmd(deps *Deps) *cobra.Command {
 			}
 			if email == "" {
 				return fmt.Errorf("login: email is required")
-			}
-			if passkey {
-				access, refresh, err := passkeyLogin(ctx, deps, api, email)
-				if err != nil {
-					return err
-				}
-				return storeLoginTokens(deps, email, "", access, refresh)
 			}
 			if password == "" {
 				fmt.Fprint(deps.Stdout, "Password: ")
@@ -119,28 +111,7 @@ func newLoginCmd(deps *Deps) *cobra.Command {
 	cmd.Flags().StringVar(&email, "email", "", "account email (non-interactive)")
 	cmd.Flags().StringVar(&password, "password", "", "account password (non-interactive)")
 	cmd.Flags().StringVar(&totpCode, "totp-code", "", "2FA TOTP code (non-interactive)")
-	cmd.Flags().BoolVar(&passkey, "passkey", false, "log in with a passkey (opens the browser for the ceremony)")
 	return cmd
-}
-
-// storeLoginTokens persists the tokens from a successful login, preserving
-// the beta token and active account.
-func storeLoginTokens(deps *Deps, email, password, access, refresh string) error {
-	creds, err := config.Read()
-	if err != nil {
-		return err
-	}
-	creds.Email = email
-	creds.Password = password
-	creds.AccessToken = access
-	if refresh != "" {
-		creds.RefreshToken = refresh
-	}
-	if err := config.Write(creds, true); err != nil {
-		return err
-	}
-	fmt.Fprintln(deps.Stdout, "logged in: tokens stored in ~/.qdivzero/credentials")
-	return nil
 }
 
 // readSecret reads a line from the reader; when stdin is a terminal the echo

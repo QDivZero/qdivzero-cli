@@ -27,6 +27,10 @@ func Factory() func(ctx context.Context) (*qdivzero.API, error) {
 		if cfg.AccountId != "" {
 			opts = append(opts, qdivzero.WithHeader("X-Account-Id", cfg.AccountId))
 		}
+		if cfg.APIKey != "" {
+			// API keys take precedence over access tokens.
+			opts = append(opts, qdivzero.WithAPIKey(cfg.APIKey))
+		}
 		return qdivzero.NewAPI(opts...)
 	}
 }

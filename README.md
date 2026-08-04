@@ -22,6 +22,7 @@ Command-line client for the QDivZero API (https://api.qdiv0.com), built on the q
 
 Configure authentication before using the CLI:
 
+- **API key (recommended)**: `qdivzero configure --api-key <key>` — switches to API-key auth (clears the token); sent as `Authorization: Bearer <key>` on every request
 - **Interactive**:
 
   ```sh

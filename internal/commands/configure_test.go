@@ -83,3 +83,46 @@ func TestConfigureTokenAndEmailConflict(t *testing.T) {
 		t.Fatal("configure: expected conflict error")
 	}
 }
+
+func TestConfigureAPIKeyPreservesBetaAndAccount(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	// seed beta + account
+	if err := config.Write(config.Credentials{
+		AccessToken:      "old-token",
+		PrivateBetaToken: "beta-1",
+		AccountId:        "acc-1",
+	}, false); err != nil {
+		t.Fatal(err)
+	}
+	var out bytes.Buffer
+	deps := &Deps{
+		Render: output.New(func() bool { return false }, &out),
+		Stdin:  strings.NewReader(""),
+		Stdout: &out,
+		Stderr: &out,
+	}
+	cmd := newConfigureCmd(deps)
+	cmd.SetArgs([]string{"--api-key", "tk_123"})
+	cmd.SetOut(&out)
+	cmd.SetErr(&out)
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("configure --api-key: %v", err)
+	}
+	if !strings.Contains(out.String(), "configured") {
+		t.Fatalf("missing confirmation: %q", out.String())
+	}
+	cfg, err := config.Read()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.APIKey != "tk_123" {
+		t.Fatalf("APIKey = %q, want tk_123", cfg.APIKey)
+	}
+	if cfg.AccessToken != "" {
+		t.Fatalf("AccessToken should be cleared in api-key mode, got %q", cfg.AccessToken)
+	}
+	if cfg.PrivateBetaToken != "beta-1" || cfg.AccountId != "acc-1" {
+		t.Fatalf("beta/account not preserved: %+v", cfg)
+	}
+}

@@ -15,6 +15,7 @@ func newConfigureCmd(deps *Deps) *cobra.Command {
 		token    string
 		email    string
 		password string
+		apiKey   string
 		force    bool
 	)
 	cmd := &cobra.Command{
@@ -29,11 +30,27 @@ func newConfigureCmd(deps *Deps) *cobra.Command {
 			if email != "" || password != "" {
 				provided++
 			}
-			if provided > 1 {
-				return fmt.Errorf("configure: use either --token or --email/--password, not both")
+			if apiKey != "" {
+				provided++
 			}
-			var creds config.Credentials
-			if token != "" {
+			if provided > 1 {
+				return fmt.Errorf("configure: use only one of --token, --email/--password or --api-key")
+			}
+			// Preserve the beta token and active account across reconfiguration.
+			existing, err := config.Read()
+			if err != nil {
+				return err
+			}
+			creds := config.Credentials{
+				PrivateBetaToken: existing.PrivateBetaToken,
+				AccountId:        existing.AccountId,
+			}
+			if apiKey != "" {
+				// API-key mode: clear the token/credentials so the API key is
+				// always used (the SDK would otherwise prefer the access token).
+				creds.APIKey = apiKey
+				force = true
+			} else if token != "" {
 				creds.AccessToken = token
 			} else if email != "" || password != "" {
 				creds.Email = email
@@ -43,6 +60,8 @@ func newConfigureCmd(deps *Deps) *cobra.Command {
 				if err != nil {
 					return err
 				}
+				prompted.PrivateBetaToken = existing.PrivateBetaToken
+				prompted.AccountId = existing.AccountId
 				creds = prompted
 			}
 			if err := config.Write(creds, force); err != nil {
@@ -55,6 +74,7 @@ func newConfigureCmd(deps *Deps) *cobra.Command {
 	cmd.Flags().StringVar(&token, "token", "", "access token (non-interactive)")
 	cmd.Flags().StringVar(&email, "email", "", "account email (non-interactive)")
 	cmd.Flags().StringVar(&password, "password", "", "account password (non-interactive)")
+	cmd.Flags().StringVar(&apiKey, "api-key", "", "QDivZero API key (non-interactive; switches to API-key auth)")
 	cmd.Flags().BoolVar(&force, "force", false, "overwrite an existing credentials file")
 	return cmd
 }
