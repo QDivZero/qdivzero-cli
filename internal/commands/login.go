@@ -36,7 +36,7 @@ func newLoginCmd(deps *Deps) *cobra.Command {
 	)
 	cmd := &cobra.Command{
 		Use:   "login",
-		Short: "Log in (email/password with 2FA, or passkey) and store the tokens",
+		Short: "Log in with email/password (2FA TOTP supported) and store the tokens",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			api, err := loginClient(deps)
