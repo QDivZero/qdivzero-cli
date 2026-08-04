@@ -11,9 +11,9 @@ import (
 	"github.com/QDivZero/qdivzero-cli/internal/output"
 )
 
-// Execute runs the root command.
-func Execute(version string) error {
-	root := NewRootCmd(version)
+// Execute runs the root command with the given service constructors.
+func Execute(version string, services ...func(*Deps) *cobra.Command) error {
+	root := NewRootCmd(version, services...)
 	if err := root.Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, "error:", err)
 		return err
@@ -22,7 +22,7 @@ func Execute(version string) error {
 }
 
 // NewRootCmd builds the CLI root command and wires the service registry.
-func NewRootCmd(version string) *cobra.Command {
+func NewRootCmd(version string, services ...func(*Deps) *cobra.Command) *cobra.Command {
 	jsonMode := false
 
 	root := &cobra.Command{
@@ -51,5 +51,8 @@ func NewRootCmd(version string) *cobra.Command {
 		newMeCmd(deps),
 		newVersionCmd(deps),
 	)
+	for _, s := range services {
+		root.AddCommand(s(deps))
+	}
 	return root
 }
