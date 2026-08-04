@@ -17,6 +17,7 @@ type Credentials struct {
 	AccessToken      string `json:"access_token"`
 	RefreshToken     string `json:"refresh_token"`
 	PrivateBetaToken string `json:"x_private_beta_token"`
+	AccountId        string `json:"account_id"`
 }
 
 // Path returns the credentials file path.

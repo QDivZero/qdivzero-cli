@@ -24,6 +24,9 @@ func Factory() func(ctx context.Context) (*qdivzero.API, error) {
 		if cfg.PrivateBetaToken != "" {
 			opts = append(opts, qdivzero.WithHeader("X-Private-Beta-Token", cfg.PrivateBetaToken))
 		}
+		if cfg.AccountId != "" {
+			opts = append(opts, qdivzero.WithHeader("X-Account-Id", cfg.AccountId))
+		}
 		return qdivzero.NewAPI(opts...)
 	}
 }

@@ -11,6 +11,7 @@ import (
 	"github.com/QDivZero/qdivzero-go"
 
 	"github.com/QDivZero/qdivzero-cli/internal/commands"
+	"github.com/QDivZero/qdivzero-cli/internal/config"
 	"github.com/QDivZero/qdivzero-cli/internal/output"
 )
 
@@ -24,38 +25,71 @@ func testDeps(t *testing.T, handler http.HandlerFunc) (*commands.Deps, *bytes.Bu
 			return qdivzero.NewAPI(qdivzero.WithServerURL(srv.URL), qdivzero.WithAccessToken("t"))
 		},
 		Render: output.New(func() bool { return false }, &buf),
+		Config: &config.Credentials{},
+		Stdin:  strings.NewReader(""),
 		Stdout: &buf,
 		Stderr: &buf,
 	}
 	return deps, &buf
 }
 
-// runCmd executes the command and returns everything the renderer wrote to
-// the deps buffer (the renderer, not cobra's out writer, is where commands
-// emit their results).
-func runCmd(t *testing.T, deps *commands.Deps, buf *bytes.Buffer, args ...string) string {
-	t.Helper()
+func TestUseWithArgStoresAccount(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	deps, _ := testDeps(t, func(w http.ResponseWriter, r *http.Request) {})
 	cmd := New(deps)
-	cmd.SetArgs(args)
-	var out bytes.Buffer
-	cmd.SetOut(&out)
-	cmd.SetErr(&out)
+	cmd.SetArgs([]string{"use", "acc-1"})
 	if err := cmd.Execute(); err != nil {
-		t.Fatalf("execute %v: %v", args, err)
+		t.Fatalf("accounts use: %v", err)
 	}
-	return buf.String()
+	cfg, err := config.Read()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.AccountId != "acc-1" {
+		t.Fatalf("AccountId = %q, want acc-1", cfg.AccountId)
+	}
 }
 
-func TestListAccounts(t *testing.T) {
+func TestUseInteractiveSelectsFromMemberships(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
 	deps, buf := testDeps(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/accounts" {
 			t.Errorf("path = %s", r.URL.Path)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{"memberships":[{"account_id":"a-1","role":"admin","user_id":"u-1"}]}`))
+		w.Write([]byte(`{"memberships":[{"account_id":"acc-1","role":"owner"},{"account_id":"acc-2","role":"member"}]}`))
 	})
-	out := runCmd(t, deps, buf, "list")
-	if !strings.Contains(out, "a-1") || !strings.Contains(out, "admin") || !strings.Contains(out, "u-1") {
-		t.Fatalf("missing membership row:\n%s", out)
+	deps.Stdin = strings.NewReader("2\n")
+	cmd := New(deps)
+	cmd.SetArgs([]string{"use"})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("accounts use: %v", err)
+	}
+	if !strings.Contains(buf.String(), "acc-2") {
+		t.Fatalf("expected selected account in output:\n%s", buf.String())
+	}
+	cfg, err := config.Read()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.AccountId != "acc-2" {
+		t.Fatalf("AccountId = %q, want acc-2", cfg.AccountId)
+	}
+}
+
+func TestUseInteractiveInvalidSelection(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	deps, _ := testDeps(t, func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"memberships":[{"account_id":"acc-1"}]}`))
+	})
+	deps.Stdin = strings.NewReader("9\n")
+	cmd := New(deps)
+	cmd.SetArgs([]string{"use"})
+	if err := cmd.Execute(); err == nil {
+		t.Fatal("accounts use: expected error for invalid selection")
 	}
 }
