@@ -15,7 +15,7 @@ Command-line client for the QDivZero API (https://api.qdiv0.com), built on the q
   curl -fsSL https://raw.githubusercontent.com/QDivZero/qdivzero-cli/main/scripts/install.sh | sh
   ```
 
-- **Homebrew**: `brew install QDivZero/tap/qdivzero` (once the tap is populated)
+- **Homebrew** (macOS/Linux): `brew install QDivZero/tap/qdivzero`
 - **Binaries**: download directly from [GitHub Releases](https://github.com/QDivZero/qdivzero-cli/releases)
 
 ## Configure
