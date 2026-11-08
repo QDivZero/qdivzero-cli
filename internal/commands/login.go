@@ -3,12 +3,14 @@ package commands
 import (
 	"bufio"
 	"fmt"
+	"net/http"
 	"os"
 	"strings"
 
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 
+	sdkclient "github.com/QDivZero/qdivzero-cli/internal/client"
 	"github.com/QDivZero/qdivzero-cli/internal/config"
 	"github.com/QDivZero/qdivzero-go"
 )
@@ -20,11 +22,14 @@ func loginClient(deps *Deps) (*qdivzero.API, error) {
 	if deps.BaseURL != "" {
 		base = deps.BaseURL
 	}
-	var opts []qdivzero.Option
-	if cfg, err := config.Read(); err == nil && cfg.PrivateBetaToken != "" {
-		opts = append(opts, qdivzero.WithHeader("X-Private-Beta-Token", cfg.PrivateBetaToken))
+	cfg, err := config.Read()
+	if err != nil {
+		return nil, err
 	}
-	opts = append(opts, qdivzero.WithServerURL(base))
+	opts, err := sdkclient.Options(base, cfg)
+	if err != nil {
+		return nil, err
+	}
 	return qdivzero.NewAPI(opts...)
 }
 
@@ -71,22 +76,30 @@ func newLoginCmd(deps *Deps) *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("login: %w", err)
 			}
-			if resp.JSON200 == nil || resp.JSON200.AccessToken == nil || *resp.JSON200.AccessToken == "" {
+			access, refresh := loginCookies(resp)
+			if access == "" || refresh == "" {
 				next := ""
 				if resp.JSON200 != nil && resp.JSON200.NextStep != nil {
 					next = *resp.JSON200.NextStep
 				}
-				if totpCode == "" && (next == "totp" || next != "") {
+				if totpCode == "" && (next == "totp" || next == "totp_required" || next == "totp-required") {
 					fmt.Fprint(deps.Stdout, "2FA required — TOTP code: ")
 					line, _ := reader.ReadString('\n')
 					code := strings.TrimSpace(line)
+					if code == "" {
+						return fmt.Errorf("login: TOTP code is required")
+					}
 					body.TotpCode = &code
 					resp, err = api.PostAuthLoginWithResponse(ctx, body)
 					if err != nil {
 						return fmt.Errorf("login: %w", err)
 					}
+					access, refresh = loginCookies(resp)
 				}
-				if resp.JSON200 == nil || resp.JSON200.AccessToken == nil || *resp.JSON200.AccessToken == "" {
+				if access == "" || refresh == "" {
+					if resp.JSON200 != nil && resp.JSON200.NextStep != nil && *resp.JSON200.NextStep != "" {
+						return fmt.Errorf("login: verification required: %s", *resp.JSON200.NextStep)
+					}
 					return fmt.Errorf("login: failed — %s (status %d)", loginErrorBody(resp.Body), resp.StatusCode())
 				}
 			}
@@ -97,10 +110,8 @@ func newLoginCmd(deps *Deps) *cobra.Command {
 			}
 			creds.Email = email
 			creds.Password = password
-			creds.AccessToken = *resp.JSON200.AccessToken
-			if resp.JSON200.RefreshToken != nil {
-				creds.RefreshToken = *resp.JSON200.RefreshToken
-			}
+			creds.AccessToken = access
+			creds.RefreshToken = refresh
 			if err := config.Write(creds, true); err != nil {
 				return err
 			}
@@ -112,6 +123,24 @@ func newLoginCmd(deps *Deps) *cobra.Command {
 	cmd.Flags().StringVar(&password, "password", "", "account password (non-interactive)")
 	cmd.Flags().StringVar(&totpCode, "totp-code", "", "2FA TOTP code (non-interactive)")
 	return cmd
+}
+
+func loginCookies(resp *qdivzero.PostAuthLoginResponse) (access, refresh string) {
+	if resp == nil || resp.StatusCode() != http.StatusOK || resp.HTTPResponse == nil {
+		return "", ""
+	}
+	for _, cookie := range resp.HTTPResponse.Cookies() {
+		if cookie.MaxAge < 0 {
+			continue
+		}
+		switch cookie.Name {
+		case "qdiv0_access":
+			access = cookie.Value
+		case "qdiv0_refresh":
+			refresh = cookie.Value
+		}
+	}
+	return access, refresh
 }
 
 // readSecret reads a line from the reader; when stdin is a terminal the echo

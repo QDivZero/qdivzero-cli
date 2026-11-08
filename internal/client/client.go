@@ -20,16 +20,9 @@ func Factory() func(ctx context.Context) (*qdivzero.API, error) {
 		if !config.IsConfigured(cfg) {
 			return nil, fmt.Errorf("qdivzero is not configured; run 'qdivzero configure' first")
 		}
-		var opts []qdivzero.Option
-		if cfg.PrivateBetaToken != "" {
-			opts = append(opts, qdivzero.WithHeader("X-Private-Beta-Token", cfg.PrivateBetaToken))
-		}
-		if cfg.AccountId != "" {
-			opts = append(opts, qdivzero.WithHeader("X-Account-Id", cfg.AccountId))
-		}
-		if cfg.APIKey != "" {
-			// API keys take precedence over access tokens.
-			opts = append(opts, qdivzero.WithAPIKey(cfg.APIKey))
+		opts, err := options("", cfg, true)
+		if err != nil {
+			return nil, err
 		}
 		return qdivzero.NewAPI(opts...)
 	}
