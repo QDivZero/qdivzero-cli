@@ -23,6 +23,7 @@ Command-line client for the QDivZero API (https://api.qdiv0.com), built on the q
 Configure authentication before using the CLI:
 
 - **API key (recommended)**: `qdivzero configure --api-key <key>` — switches to API-key auth (clears the token); sent as `Authorization: Bearer <key>` on every request
+- **Sign in**: `qdivzero login --email <email>` — prompts for a password and, when required, a TOTP code. Successful login stores the session cookies.
 - **Interactive**:
 
   ```sh
@@ -37,6 +38,8 @@ Configure authentication before using the CLI:
   ```
 
 Use `--force` to overwrite an existing credentials file. The CLI writes `~/.qdivzero/credentials`, shared with all qdivzero SDKs.
+The `--token` value is a session access-cookie value. When the API rotates a
+session during a command, the CLI saves the updated cookies for later invocations.
 
 ## Usage
 

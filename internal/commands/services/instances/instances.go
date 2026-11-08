@@ -319,7 +319,15 @@ func newCreateCmd(deps *commands.Deps) *cobra.Command {
 				body.SmartSelectionLabel = strPtr(smartSelectionLabel)
 			}
 			if cmd.Flags().Changed("workload-kind") {
-				body.WorkloadKind = strPtr(workloadKind)
+				// The generated SDK has used both string and named-enum field types.
+				// Decode the field through JSON to remain compatible with both.
+				field, err := json.Marshal(map[string]string{"workload_kind": workloadKind})
+				if err != nil {
+					return fmt.Errorf("instances create: encode workload kind: %w", err)
+				}
+				if err := json.Unmarshal(field, &body); err != nil {
+					return fmt.Errorf("instances create: invalid workload kind: %w", err)
+				}
 			}
 			if cmd.Flags().Changed("serving-name") {
 				body.ServingName = strPtr(servingName)

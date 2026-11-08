@@ -10,7 +10,9 @@ import (
 
 	"github.com/QDivZero/qdivzero-go"
 
+	sdkclient "github.com/QDivZero/qdivzero-cli/internal/client"
 	"github.com/QDivZero/qdivzero-cli/internal/commands"
+	"github.com/QDivZero/qdivzero-cli/internal/config"
 	"github.com/QDivZero/qdivzero-cli/internal/output"
 )
 
@@ -21,7 +23,11 @@ func testDeps(t *testing.T, handler http.HandlerFunc) (*commands.Deps, *bytes.Bu
 	var buf bytes.Buffer
 	deps := &commands.Deps{
 		Client: func(ctx context.Context) (*qdivzero.API, error) {
-			return qdivzero.NewAPI(qdivzero.WithServerURL(srv.URL), qdivzero.WithAccessToken("t"))
+			opts, err := sdkclient.Options(srv.URL, config.Credentials{AccessToken: "t"})
+			if err != nil {
+				return nil, err
+			}
+			return qdivzero.NewAPI(opts...)
 		},
 		Render: output.New(func() bool { return false }, &buf),
 		Stdout: &buf,
@@ -48,7 +54,7 @@ func runCmd(t *testing.T, deps *commands.Deps, buf *bytes.Buffer, args ...string
 
 func TestListServingEndpoints(t *testing.T) {
 	deps, buf := testDeps(t, func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/serving-endpoints" {
+		if r.URL.Path != "/v1/serving-endpoints" {
 			t.Errorf("path = %s", r.URL.Path)
 		}
 		w.Header().Set("Content-Type", "application/json")
@@ -66,7 +72,7 @@ func TestListServingEndpoints(t *testing.T) {
 
 func TestCreateServingEndpoint(t *testing.T) {
 	deps, buf := testDeps(t, func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/serving-endpoints" {
+		if r.URL.Path != "/v1/serving-endpoints" {
 			t.Errorf("path = %s", r.URL.Path)
 		}
 		w.Header().Set("Content-Type", "application/json")
